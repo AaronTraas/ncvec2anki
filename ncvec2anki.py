@@ -41,34 +41,41 @@ def parse_questions(questions_text):
 
 def parse_subelement_title(title):
     match = REGEX_SUBELEMENT_TITLE.match(title)
-    return {
-        'id': match.group('id'),
+    subelement = {
         'title': match.group('title'),
         'exam_questions': match.group('exam_questions'),
         'groups': match.group('groups'),
         'questions': match.group('questions')
     }
+    return (match.group('id'), subelement)
 
 def parse_syllabus_section(section):
     (id, title) = section.split(' ', 1)
-    return {'id': id, 'title': title}
+    return (id, title)
 
 def parse_syllabus(syllabus_text):
     subelements_raw = split_subelements(syllabus_text)
 
-    subelements = []
+    subelements = {}
     for sub in subelements_raw:
-        new_sub = parse_subelement_title(sub[0])
-        new_sub['sections'] = [parse_syllabus_section(s) for s in sub[1:] if s]
-        subelements.append(new_sub)
+        (key, new_sub) = parse_subelement_title(sub[0])
+
+        new_sub['sections'] = {}
+        for section in sub[1:]:
+            (section_key, section_title) = parse_syllabus_section(section)
+            new_sub['sections'][section_key] = {
+                'name': section_title,
+                'questions': {}
+            }
+
+        subelements[key] = new_sub
 
     return subelements
 
 def convert_ncvec_txt_to_dict(ncvec_txt):
     (syllabus_text, questions_text) = ncvec_txt.split(TOKEN_SYLLABUS_END)
     return {
-        'syllabus': parse_syllabus(syllabus_text),
-        'questions': parse_questions(questions_text)
+        'subelements': parse_syllabus(syllabus_text)
     }
 
 for input_file_name in INPUT_FILES:
